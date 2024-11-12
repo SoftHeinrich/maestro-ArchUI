@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import MainMenu from "./main_menu";
 import Root from "./routes/root";
 import Embeddings from "./routes/ml_models/embeddings";
 import MLModels from "./routes/ml_models/ml_models";
@@ -12,7 +11,9 @@ import Tags from "./routes/tags";
 import Statistics from "./routes/statistics";
 import Search from "./routes/search";
 import { initConnectionSettings } from "./components/connectionSettings";
-
+// import ExperimentForm from "./routes/experiment";
+import ExperimentSearch from "./routes/experiment_search";
+import Experiment from "./routes/experiment";
 function App() {
   initConnectionSettings();
 
@@ -50,12 +51,20 @@ function App() {
       path: `${prefix}/settings`,
       element: <Settings />,
     },
+    {
+      path: `${prefix}/experiment`,
+      element: <Experiment />,
+    },
+    {
+      path: `${prefix}/experiment-search`,
+      element: <ExperimentSearch />,
+    },
   ]);
 
   return (
     <>
       <div className="dark:bg-slate-900 text-white min-h-screen">
-        <MainMenu />
+        {/* <MainMenu /> */}
         <div className="pt-4">
           <RouterProvider router={router} />
         </div>
@@ -63,6 +72,28 @@ function App() {
     </>
   );
 }
+
+
+
+// function App() {
+//   initConnectionSettings();
+
+//   const prefix = "/archui";
+//   const router = createBrowserRouter([
+    
+//   ]);
+
+//   return (
+//     <>
+//       <div className="dark:bg-slate-900 text-white min-h-screen">
+//         {/* <MainMenu /> */}
+//         <div className="pt-4">
+//           <RouterProvider router={router} />
+//         </div>
+//       </div>
+//     </>
+//   );
+// }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

@@ -294,7 +294,7 @@ function SearchResults({ searchResults }) {
             <Attachments attachments={result["attachments"]}></Attachments>
             {result["comments"] &&
             (
-              <Accordion title="Comments" answer={<Comments comments={result["comment"]} />} />
+              <Accordion title="Comments" answer={<Comments comments={result["comments"]} />} />
             )
               // <Accordion title={"comments"} answer={Comments(commentsString={"ajay"})}></Accordion>
             // <Comments commentsString={result["comments"]}></Comments>
