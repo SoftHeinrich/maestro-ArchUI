@@ -1,9 +1,10 @@
 // src/routes/experiment_form.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+
 import { postRequest } from "./util";
 import { TextForm } from "../components/forms";
 import { Button } from "../components/button";
-
+import { useNavigate } from 'react-router-dom';
 function StartExperiment({ label, onClick }) {
   const [mtrNo, setMtrNo] = useState("");
   const forms = [
@@ -32,10 +33,25 @@ function StartExperiment({ label, onClick }) {
   );
 }
 
-function ExperimentForm({ setTaskData }) {
-  let [loginInfo, setLoginInfo] = useState("No Tasks yet");
+// ExperimentForm Component
 
-  function getTasksInfo(mtrNo) {
+function ExperimentForm({ setTaskData }) {
+  let [loginInfo, setLoginInfo] = useState(()=>{
+    if(localStorage.getItem("matriculationNumber")) return `Tasks For: ${localStorage.getItem("matriculationNumber")}`
+    else
+    return "No Tasks yet"});
+
+  useEffect(() => {
+    const storedTaskData = localStorage.getItem("taskData");
+    const storedMatriculationNumber = localStorage.getItem("matriculationNumber");
+
+    if (storedTaskData && storedMatriculationNumber) {
+      // Fetch updated tasks info from the server
+      getTasksInfo(storedMatriculationNumber, JSON.parse(storedTaskData));
+    }
+  }, []);
+
+  function getTasksInfo(mtrNo, currentData = null) {
     let body = {
       "MtrNo": mtrNo,
     };
@@ -43,13 +59,15 @@ function ExperimentForm({ setTaskData }) {
       "/tasks",
       body,
       (data) => {
-        setLoginInfo(`Tasks For: ${mtrNo}`);
-        alert("Task Fetched Successfully");
-        setTaskData(data);
-        // Save data in local storage
-        localStorage.setItem("taskData", JSON.stringify(data));
-        localStorage.setItem("matriculationNumber", mtrNo);
-        console.log(data);
+        if (JSON.stringify(data) !== JSON.stringify(currentData)) {
+          setLoginInfo(`Tasks For: ${mtrNo}`);
+          alert("Task Fetched Successfully");
+          setTaskData(data);
+          // Save data in local storage
+          localStorage.setItem("taskData", JSON.stringify(data));
+          localStorage.setItem("matriculationNumber", mtrNo);
+          console.log(data);
+        }
       }
     );
   }
@@ -57,12 +75,21 @@ function ExperimentForm({ setTaskData }) {
   return (
     <>
       <p className="text-2xl justify-center flex mb-4">{loginInfo}</p>
-      <StartExperiment label="Set Mtr.No" onClick={getTasksInfo} />
+      <StartExperiment label="Set Mtr.No" onClick={(mtrNo) => getTasksInfo(mtrNo)} />
     </>
   );
 }
 
+// export default ExperimentForm;
+
+
 function ShowExperiment({ taskData }) {
+  const navigate = useNavigate();
+
+  function handleAttempt(questionKey, taskId) {
+    navigate(`/archui/experiment-search/${taskId}/${questionKey}`);
+  }
+
   if (!taskData) {
     return <p>No Task Data Available</p>;
   }
@@ -72,15 +99,26 @@ function ShowExperiment({ taskData }) {
       {taskData.map((task, index) => (
         <div key={index} className="space-y-4">
           <h3 className="text-2xl font-bold">Task: {task.taskName}</h3>
-          {/* <p>{task.description}</p> */}
           <p>{task.description.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
           <p>{task.task_details.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
           <h4 className="text-xl font-bold">Questions:</h4>
           {Object.entries(task.questions).map(([key, question]) => (
-            <div key={key} className=" p-4 rounded-md mb-2">
+            <div key={key} className="p-4 rounded-md mb-2 relative">
               <p className="font-bold">{question.type} Question:</p>
-              <p>{question.description}</p>
+              <p>{question.description.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
               {/* <p>Design Decision: {Object.keys(question.design_decision).join(", ")}</p> */}
+              <div className="absolute top-0 right-0">
+                {task.solutions && task.solutions[key] && task.solutions[key].length >= 2 ? (
+                  <span className="text-green-500 font-bold">Solved</span>
+                  
+                ) : (
+                  <>
+                    <Button label="Attempt" onClick={() => handleAttempt(key, task.taskName)} />
+                    
+                  </>
+                )}
+                <span className="text-gray-500 ml-2">solved: {task.solutions && task.solutions[key] ? task.solutions[key].length : 0}/2</span>
+              </div>
             </div>
           ))}
         </div>
@@ -94,6 +132,7 @@ function Experiment() {
     const savedTaskData = localStorage.getItem("taskData");
     return savedTaskData ? JSON.parse(savedTaskData) : null;
   });
+
   return (
     <div className="container mx-auto w-fit">
       <p className="text-4xl font-bold justify-center flex mb-4">Experiment</p>

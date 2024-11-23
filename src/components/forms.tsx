@@ -144,3 +144,24 @@ export function FileForm({ label, onChange, accept = "application/json" }) {
     </div>
   );
 }
+
+export function RadioButtonForm({ label, options, selectedValue, onChange }) {
+  return (
+    <div className="flex flex-col space-y-4">
+      {label && <label className="font-bold mb-1">{label}</label>}
+      {options.map((option) => (
+        <div key={option.value} className="flex items-center space-x-2">
+          <input
+            type="radio"
+            value={option.value}
+            checked={selectedValue == option.value}
+            onChange={() => onChange(option.value)}
+            className="form-radio h-4 w-4 text-blue-600"
+          />
+          <label>{option.label}</label>
+        </div>
+      ))}
+    </div>
+  );
+}
+

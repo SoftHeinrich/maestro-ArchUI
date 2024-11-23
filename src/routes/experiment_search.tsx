@@ -1,9 +1,30 @@
 // src/routes/experiment_search.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { postRequestSearchEngine, getDatabaseURL,postRequest } from "./util";
+import { Button } from "../components/button";
+import { MagnifyingGlassIcon } from "../icons";
+import Attachments from "../components/Attachments";
+import Accordion from "../components/Accordion";
+import Comments from "../components/comments";
+import { useNavigate } from 'react-router-dom';
+import {
+  TextAreaForm,
+  RadioButtonForm
+} from "../components/forms";
+// Types for SearchResult and Ratings
 
 type SearchResult = {
-  id: number;
-  title: string;
+  issue_id: number;
+  issue_key: string;
+  summary: string;
+  description: string;
+  attachments: any;
+  comments: any;
+  existence: string | null;
+  executive: string | null;
+  property: string | null;
+  new_score: number;
 };
 
 type Ratings = {
@@ -11,80 +32,181 @@ type Ratings = {
 };
 
 function ExperimentSearch() {
+  const navigate = useNavigate();
+
+  const { taskId, questionKey } = useParams();
+  const taskData = JSON.parse(localStorage.getItem("taskData") || "null");
+
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [ratings, setRatings] = useState<Ratings>({});
-  const task = localStorage.getItem("selectedTask");
   const matriculationNumber = localStorage.getItem("matriculationNumber");
 
-  const handleSearch = async () => {
-    // Simulate search engine switching mechanism
-    const engine = Math.random() > 0.5 ? "Engine A" : "Engine B";
-    // Perform search based on engine (implementation not shown)
-    const results = await performSearch(searchQuery, engine);
-    setSearchResults(results);
+  const selectedModel = {
+    modelId: "648ee4526b3fde4b1b33e099",
+    versionId: "648f1f6f6b3fde4b1b3429cf",
+  };
+
+  useEffect(() => {
+    if (taskData && taskId && questionKey) {
+      console.log(`Experiment Search initialized for Task: ${taskId}, Question: ${questionKey}`);
+    }
+  }, [taskData, taskId, questionKey]);
+
+  const handleSearch = () => {
+    const question = taskData?.find((t: any) => t["taskName"] === taskId)?.questions[questionKey];
+    const tmp = {
+      existence: question?.design_decision?.existence ?? null,
+      executive: question?.design_decision?.executive ?? null,
+      property: question?.design_decision?.property ?? null,
+    };
+    postRequestSearchEngine(
+      "/search",
+      {
+        database_url: getDatabaseURL(),
+        model_id: selectedModel.modelId,
+        version_id: selectedModel.versionId,
+        repos_and_projects: { Apache: ["TAJO"] }, // Assuming predefined repo and project
+        query: searchQuery,
+        num_results: 10,
+        predictions: tmp,
+      },
+      (data) => setSearchResults([...data["payload"]])
+    );
   };
 
   const handleRatingChange = (resultId: number, rating: string) => {
     setRatings({ ...ratings, [resultId]: rating });
+    console.log(ratings);
   };
 
   const handleSubmitRatings = () => {
-    const experimentData = {
-      matriculationNumber,
-      task,
-      searchQuery,
-      ratings,
-    };
-    // Save experiment data (could be to local storage or send to backend)
-    console.log("Experiment Data:", experimentData);
+    if (Object.keys(ratings).length === 10 || Object.keys(ratings).length === searchResults.length) {
+      const experimentData = {
+        matriculationNumber,
+        taskId,
+        questionKey,
+        searchQuery,
+        ratings,
+      };
+      postRequest("/submit-ratings", experimentData, () => {
+        alert("Ratings submitted successfully");
+        navigate(`/archui/experiment`);
+
+      });
+    } else {
+      alert("Please ensure you have rated all 10 results or the total number of results available.");
+    }
   };
 
+  if (!taskData) {
+    return <p>No Task Data Available</p>;
+  }
+
+  const task = taskData.find((t: any) => t["taskName"] === taskId);
+  const question = task ? task.questions[questionKey] : null;
+
   return (
-    <div>
-      <h2>Experiment Search for Task: {task}</h2>
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-      <button onClick={handleSearch}>Search</button>
-      <div>
-        {searchResults.map((result) => (
-          <div key={result.id}>
-            <p>{result.title}</p>
-            <label>Rate this result:</label>
-            <select
-              value={ratings[result.id] || ""}
-              onChange={(e) => handleRatingChange(result.id, e.target.value)}
-            >
-              <option value="">Rate</option>
-              <option value="0">0 - Not Relevant</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5 - Very Relevant</option>
-            </select>
-          </div>
-        ))}
+    <div className="mx-auto container pb-4">
+      <h2 className="text-4xl font-bold justify-center flex mb-4">
+        Task: {task?.taskName}, Question: {questionKey}
+      </h2>
+      <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+        <p className="text-lg font-semibold">Task Description:</p>
+        <p className="mb-4">{task?.description.split('\n').map((line: string, idx: number) => (
+          <React.Fragment key={idx}>{line}<br /></React.Fragment>
+        ))}</p>
+        <p className="text-lg font-semibold">Question Description:</p>
+        <p className="mb-4">{question?.description.split('\n').map((line: string, idx: number) => (
+          <React.Fragment key={idx}>{line}<br /></React.Fragment>
+        ))}</p>
+        <p>{task?.task_details.split('\n').map((line: string, idx: number) => (
+          <React.Fragment key={idx}>{line}<br /></React.Fragment>
+        ))}</p>
       </div>
-      <button onClick={handleSubmitRatings}>Submit Ratings</button>
+
+      <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+        <TextAreaForm
+          label="Query"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full p-2 border rounded-lg"
+        />
+        <div className="flex justify-between space-x-4">
+          <><div></div></>
+        <Button
+          label="Search"
+          onClick={handleSearch}
+          icon={<MagnifyingGlassIcon />}
+        />
+        </div>
+      </div>
+
+      <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+        {searchResults.length !== 0 ? (
+          <p className="flex justify-center text-2xl font-bold">Search results</p>
+        ) : null}
+
+        {searchResults.map((result, idx) => {
+          let label: string[] = [];
+          for (let className of ["existence", "executive", "property"]) {
+            if (result[className] === "true") {
+              label.push(className);
+            }
+          }
+          if (label.length === 0) {
+            if (result["existence"] === null) {
+              label.push("Not classified");
+            } else {
+              label.push("non-architectural");
+            }
+          }
+          return (
+            <div
+              className="rounded-lg border border-gray-500 p-4 mt-4"
+              key={result["issue_id"]}
+            >
+              <p className="text-lg font-bold">
+                {idx + 1}. {result["issue_key"]}: {result["summary"]}
+              </p>
+              <p className="italic mt-2 text-green-500">
+                Issue ID: {result["issue_id"]}
+              </p>
+              <p className="italic text-green-500">Label: {label.join(", ")}</p>
+              <p className="italic text-green-500">
+                Score: {result["new_score"]}
+              </p>
+              <p className="mt-2">
+                {result["description"].split('\n').map((line, idx) => (
+                  <React.Fragment key={idx}>{line}<br /></React.Fragment>
+                ))}
+              </p>
+              <Attachments attachments={result["attachments"]}></Attachments>
+              {result["comments"] && (
+                <Accordion
+                  title="Comments"
+                  answer={<Comments comments={result["comments"]} />}
+                />
+              )}
+              <div className="flex justify-between space-x-4">
+              <label className="block mt-4">Rate this result:</label>
+              <RadioButtonForm
+              label={"Lekert Scale"}
+              options={Object.entries(task?.lekert_scale).map(([value, label]) => ({
+                label: label,
+                value: parseInt(value)
+              }))}
+              selectedValue={ratings[result["issue_id"]]}
+              onChange={(value)=> handleRatingChange(result["issue_id"],value)}
+              ></RadioButtonForm>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <Button label="Submit Ratings" onClick={handleSubmitRatings} className="mt-4" />
     </div>
   );
-}
-
-async function performSearch(query: string, engine: string): Promise<SearchResult[]> {
-  // Simulate search function
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { id: 1, title: `Result 1 from ${engine}` },
-        { id: 2, title: `Result 2 from ${engine}` },
-        { id: 3, title: `Result 3 from ${engine}` },
-      ]);
-    }, 1000);
-  });
 }
 
 export default ExperimentSearch;

@@ -56,9 +56,9 @@ function App() {
       element: <Experiment />,
     },
     {
-      path: `${prefix}/experiment-search`,
+      path: `${prefix}/experiment-search/:taskId/:questionKey`,
       element: <ExperimentSearch />,
-    },
+    }    
   ]);
 
   return (
