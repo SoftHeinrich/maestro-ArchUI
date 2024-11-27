@@ -54,11 +54,17 @@ function ExperimentSearch() {
   }, [taskData, taskId, questionKey]);
 
   const handleSearch = () => {
-    const question = taskData?.find((t: any) => t["taskName"] === taskId)?.questions[questionKey];
-    const tmp = {
+    const task = taskData?.find((t: any) => t["taskName"] === taskId);
+    const question = task?.questions[questionKey];
+    
+    const tmp = task?.rerank_engine ? {
       existence: question?.design_decision?.existence ?? null,
       executive: question?.design_decision?.executive ?? null,
       property: question?.design_decision?.property ?? null,
+    } : {
+      existence: null,
+      executive: null,
+      property: null,
     };
     postRequestSearchEngine(
       "/search",
@@ -66,7 +72,7 @@ function ExperimentSearch() {
         database_url: getDatabaseURL(),
         model_id: selectedModel.modelId,
         version_id: selectedModel.versionId,
-        repos_and_projects: { Apache: ["TAJO"] }, // Assuming predefined repo and project
+        repos_and_projects: { Apache: ["HDFS"] }, // Assuming predefined repo and project
         query: searchQuery,
         num_results: 10,
         predictions: tmp,
