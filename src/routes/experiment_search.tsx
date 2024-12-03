@@ -148,7 +148,7 @@ function ExperimentSearch() {
         </div>
       </div>
 
-      <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+      {/* <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4"> */}
         {searchResults.length !== 0 ? (
           <p className="flex justify-center text-2xl font-bold">Search results</p>
         ) : null}
@@ -180,7 +180,7 @@ function ExperimentSearch() {
               </p>
               <p className="italic text-green-500">Label: {label.join(", ")}</p>
               <p className="italic text-green-500">
-                Score: {result["new_score"]}
+                Score: {result["hit_score"]}
               </p>
               <p className="mt-2">
                 {result["description"].split('\n').map((line, idx) => (
@@ -188,11 +188,17 @@ function ExperimentSearch() {
                 ))}
               </p>
               <Attachments attachments={result["attachments"]}></Attachments>
-              {result["comments"] && (
+              {result["comments"].length!=0 && (
                 <Accordion
                   title="Comments"
                   answer={<Comments comments={result["comments"]} />}
                 />
+              )}
+              {result["comments"].length==0 && (
+                <div
+              className="rounded-lg border border-gray-500 p-4 mt-4">
+                <p> No comments for this issue</p>
+                </div>
               )}
               <div className="flex justify-between space-x-4">
               <label className="block mt-4">Rate this result:</label>
@@ -209,8 +215,10 @@ function ExperimentSearch() {
             </div>
           );
         })}
-      </div>
-      <Button label="Submit Ratings" onClick={handleSubmitRatings} className="mt-4" />
+      <div className="flex justify-between space-x-4">
+          <><div></div></>
+          <Button label="Submit Ratings" onClick={handleSubmitRatings} className="mt-4" />
+        </div>
     </div>
   );
 }

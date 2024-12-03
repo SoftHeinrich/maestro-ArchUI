@@ -7,9 +7,9 @@ export interface ConnectionSettings {
 }
 
 const defaultSettings: ConnectionSettings = {
-  databaseURL: "https://maestro.localhost/issues-db-api",
-  dlManagerURL: "https://maestro.localhost/dl-manager",
-  searchEngineURL: "https://maestro.localhost/search-engine",
+  databaseURL: "https://131.234.28.135:4269/issues-db-api",
+  dlManagerURL: "https://131.234.28.135:4269/dl-manager",
+  searchEngineURL: "https://131.234.28.135:4269/search-engine",
 };
 
 export function initConnectionSettings() {
