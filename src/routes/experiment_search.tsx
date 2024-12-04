@@ -1,7 +1,7 @@
 // src/routes/experiment_search.tsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { postRequestSearchEngine, getDatabaseURL,postRequest } from "./util";
+import { postRequestSearchEngine, getDatabaseURL, postRequest } from "./util";
 import { Button } from "../components/button";
 import { MagnifyingGlassIcon } from "../icons";
 import Attachments from "../components/Attachments";
@@ -27,8 +27,13 @@ type SearchResult = {
   new_score: number;
 };
 
+type Rating = {
+  issue_id: number | string;
+  rating: string;
+};
+
 type Ratings = {
-  [key: number]: string;
+  [key: number]: Rating;
 };
 
 function ExperimentSearch() {
@@ -81,29 +86,40 @@ function ExperimentSearch() {
     );
   };
 
-  const handleRatingChange = (resultId: number, rating: string) => {
-    setRatings({ ...ratings, [resultId]: rating });
+  const handleRatingChange = (index: number, resultId: number, rating: string) => {
+    setRatings({ ...ratings, [index]: { issue_id: resultId, rating } });
     console.log(ratings);
   };
 
   const handleSubmitRatings = () => {
-    if (Object.keys(ratings).length === 10 || Object.keys(ratings).length === searchResults.length) {
+    if (Object.keys(ratings).length === searchResults.length) {
+      const ratingsList = Object.values(ratings).map((rating) => ({
+        issue_id: rating.issue_id,
+        rating: rating.rating,
+      }));
+  
       const experimentData = {
         matriculationNumber,
         taskId,
         questionKey,
         searchQuery,
-        ratings,
+        ratings: ratingsList,
       };
-      postRequest("/submit-ratings", experimentData, () => {
-        alert("Ratings submitted successfully");
-        navigate(`/archui/experiment`);
-
+  
+      postRequest("/submit-ratings", experimentData, (response) => {
+        if (response.success) {
+          alert("Ratings submitted successfully");
+          // navigate(`/archui/experiment`);
+        } else {
+          alert("Failed to submit ratings. Please try again.");
+          console.log(response);
+        }
       });
     } else {
-      alert("Please ensure you have rated all 10 results or the total number of results available.");
+      alert("Please ensure you have rated all the results available.");
     }
   };
+  
 
   if (!taskData) {
     return <p>No Task Data Available</p>;
@@ -208,8 +224,8 @@ function ExperimentSearch() {
                 label: label,
                 value: parseInt(value)
               }))}
-              selectedValue={ratings[result["issue_id"]]}
-              onChange={(value)=> handleRatingChange(result["issue_id"],value)}
+              selectedValue={ratings[idx]?.rating}
+              onChange={(value)=> handleRatingChange(idx, result["issue_id"], value)}
               ></RadioButtonForm>
               </div>
             </div>
