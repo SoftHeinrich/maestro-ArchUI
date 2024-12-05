@@ -45,6 +45,8 @@ function ExperimentSearch() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [ratings, setRatings] = useState<Ratings>({});
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const matriculationNumber = localStorage.getItem("matriculationNumber");
 
   const selectedModel = {
@@ -59,9 +61,18 @@ function ExperimentSearch() {
   }, [taskData, taskId, questionKey]);
 
   const handleSearch = () => {
+    if (!searchQuery) {
+      alert("Please enter a search query");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setSearchResults([]);
+
     const task = taskData?.find((t: any) => t["taskName"] === taskId);
     const question = task?.questions[questionKey];
-    
+
     const tmp = task?.rerank_engine ? {
       existence: question?.design_decision?.existence ?? null,
       executive: question?.design_decision?.executive ?? null,
@@ -71,6 +82,7 @@ function ExperimentSearch() {
       executive: null,
       property: null,
     };
+
     postRequestSearchEngine(
       "/search",
       {
@@ -82,7 +94,23 @@ function ExperimentSearch() {
         num_results: 10,
         predictions: tmp,
       },
-      (data) => setSearchResults([...data["payload"]])
+      (data) => {
+        setIsLoading(false);
+        if (data.result == "done") {
+          if (data["payload"].length === 0) {
+            setError("No results found.");
+          } else {
+            setSearchResults([...data["payload"]]);
+          }
+        } else {
+          setError("Failed to fetch search results. Please try again.");
+        }
+      },
+      (err) => {
+        setIsLoading(false);
+        setError("An error occurred while fetching search results. Please try again.");
+        console.error(err);
+      }
     );
   };
 
@@ -109,7 +137,7 @@ function ExperimentSearch() {
       postRequest("/submit-ratings", experimentData, (response) => {
         if (response.success) {
           alert("Ratings submitted successfully");
-          // navigate(`/archui/experiment`);
+          navigate(`/archui/experiment`);
         } else {
           alert("Failed to submit ratings. Please try again.");
           console.log(response);
@@ -119,7 +147,6 @@ function ExperimentSearch() {
       alert("Please ensure you have rated all the results available.");
     }
   };
-  
 
   if (!taskData) {
     return <p>No Task Data Available</p>;
@@ -156,81 +183,82 @@ function ExperimentSearch() {
         />
         <div className="flex justify-between space-x-4">
           <><div></div></>
-        <Button
-          label="Search"
-          onClick={handleSearch}
-          icon={<MagnifyingGlassIcon />}
-        />
+          <Button
+            label="Search"
+            onClick={handleSearch}
+            icon={<MagnifyingGlassIcon />}
+          />
         </div>
+        {isLoading && <p className="text-center mt-4">Loading search results...</p>}
+        {error && <p className="text-center text-red-500 mt-4">{error}</p>}
       </div>
 
-      {/* <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4"> */}
-        {searchResults.length !== 0 ? (
-          <p className="flex justify-center text-2xl font-bold">Search results</p>
-        ) : null}
+      {searchResults.length !== 0 && (
+        <p className="flex justify-center text-2xl font-bold mt-4">Search results</p>
+      )}
 
-        {searchResults.map((result, idx) => {
-          let label: string[] = [];
-          for (let className of ["existence", "executive", "property"]) {
-            if (result[className] === "true") {
-              label.push(className);
-            }
+      {searchResults.map((result, idx) => {
+        let label: string[] = [];
+        for (let className of ["existence", "executive", "property"]) {
+          if (result[className] === "true") {
+            label.push(className);
           }
-          if (label.length === 0) {
-            if (result["existence"] === null) {
-              label.push("Not classified");
-            } else {
-              label.push("non-architectural");
-            }
+        }
+        if (label.length === 0) {
+          if (result["existence"] === null) {
+            label.push("Not classified");
+          } else {
+            label.push("non-architectural");
           }
-          return (
-            <div
-              className="rounded-lg border border-gray-500 p-4 mt-4"
-              key={result["issue_id"]}
-            >
-              <p className="text-lg font-bold">
-                {idx + 1}. {result["issue_key"]}: {result["summary"]}
-              </p>
-              <p className="italic mt-2 text-green-500">
-                Issue ID: {result["issue_id"]}
-              </p>
-              <p className="italic text-green-500">Label: {label.join(", ")}</p>
-              <p className="italic text-green-500">
-                Score: {result["hit_score"]}
-              </p>
-              <p className="mt-2">
-                {result["description"].split('\n').map((line, idx) => (
-                  <React.Fragment key={idx}>{line}<br /></React.Fragment>
-                ))}
-              </p>
-              <Attachments attachments={result["attachments"]}></Attachments>
-              {result["comments"].length!=0 && (
-                <Accordion
-                  title="Comments"
-                  answer={<Comments comments={result["comments"]} />}
-                />
-              )}
-              {result["comments"].length==0 && (
-                <div
-              className="rounded-lg border border-gray-500 p-4 mt-4">
-                <p> No comments for this issue</p>
-                </div>
-              )}
-              <div className="flex justify-between space-x-4">
+        }
+        return (
+          <div
+            className="rounded-lg border border-gray-500 p-4 mt-4"
+            key={result["issue_id"]}
+          >
+            <p className="text-lg font-bold">
+              {idx + 1}. {result["issue_key"]}: {result["summary"]}
+            </p>
+            <p className="italic mt-2 text-green-500">
+              Issue ID: {result["issue_id"]}
+            </p>
+            <p className="italic text-green-500">Label: {label.join(", ")}</p>
+            <p className="italic text-green-500">
+              Score: {result["hit_score"]}
+            </p>
+            <p className="mt-2">
+              {result["description"].split('\n').map((line, idx) => (
+                <React.Fragment key={idx}>{line}<br /></React.Fragment>
+              ))}
+            </p>
+            <Attachments attachments={result["attachments"]}></Attachments>
+            {result["comments"].length !== 0 && (
+              <Accordion
+                title="Comments"
+                answer={<Comments comments={result["comments"]} />}
+              />
+            )}
+            {result["comments"].length === 0 && (
+              <div className="rounded-lg border border-gray-500 p-4 mt-4">
+                <p>No comments for this issue</p>
+              </div>
+            )}
+            <div className="flex justify-between space-x-4">
               <label className="block mt-4">Rate this result:</label>
               <RadioButtonForm
-              label={"Lekert Scale"}
-              options={Object.entries(task?.lekert_scale).map(([value, label]) => ({
-                label: label,
-                value: parseInt(value)
-              }))}
-              selectedValue={ratings[idx]?.rating}
-              onChange={(value)=> handleRatingChange(idx, result["issue_id"], value)}
+                label={"Lekert Scale"}
+                options={Object.entries(task?.lekert_scale).map(([value, label]) => ({
+                  label: label,
+                  value: parseInt(value)
+                }))}
+                selectedValue={ratings[idx]?.rating}
+                onChange={(value) => handleRatingChange(idx, result["issue_id"], value)}
               ></RadioButtonForm>
-              </div>
             </div>
-          );
-        })}
+          </div>
+        );
+      })}
+
       <div className="flex justify-between space-x-4">
           <><div></div></>
           <Button label="Submit Ratings" onClick={handleSubmitRatings} className="mt-4" />
