@@ -278,6 +278,7 @@ function ExperimentSearch() {
       </div>
 
       <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+        {task?.gpt == true && <h1>Using GPT</h1>}
         <TextAreaForm
           label="Query"
           value={searchQuery}
