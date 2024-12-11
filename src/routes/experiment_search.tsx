@@ -60,29 +60,131 @@ function ExperimentSearch() {
     }
   }, [taskData, taskId, questionKey]);
 
+  // const handleSearch = () => {
+  //   if (!searchQuery) {
+  //     alert("Please enter a search query");
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   setError("");
+  //   setSearchResults([]);
+
+  //   const task = taskData?.find((t: any) => t["taskName"] === taskId);
+  //   const question = task?.questions[questionKey];
+
+  //   var newQuery = null
+  //   if(task.gpt == true){
+  //     const data = {
+  //       prompt:searchQuery
+  //     };
+
+  
+  //     postRequest("/gpt4-response", data, (response) => {
+  //       if (response.answer) {
+  //         newQuery = response.answer
+  //         alert("Ratings submitted successfully");
+  //         // navigate(`/archui/experiment`);
+  //       } else {
+  //         alert("Failed to submit ratings. Please try again.");
+  //         console.log(response);
+  //       }
+  //     });
+
+  //     console.log(newQuery)
+  //   }
+
+  //   const tmp = task?.rerank_engine ? {
+  //     existence: question?.design_decision?.existence ?? null,
+  //     executive: question?.design_decision?.executive ?? null,
+  //     property: question?.design_decision?.property ?? null,
+  //   } : {
+  //     existence: null,
+  //     executive: null,
+  //     property: null,
+  //   };
+
+  //   postRequestSearchEngine(
+  //     "/search",
+  //     {
+  //       database_url: getDatabaseURL(),
+  //       model_id: selectedModel.modelId,
+  //       version_id: selectedModel.versionId,
+  //       repos_and_projects: { Apache: ["HDFS"] }, // Assuming predefined repo and project
+  //       query: newQuery!= null?newQuery:searchQuery,
+  //       num_results: 10,
+  //       predictions: tmp,
+  //     },
+  //     (data) => {
+  //       setIsLoading(false);
+  //       if (data.result == "done") {
+  //         if (data["payload"].length === 0) {
+  //           setError("No results found.");
+  //         } else {
+  //           setSearchResults([...data["payload"]]);
+  //         }
+  //       } else {
+  //         setError("Failed to fetch search results. Please try again.");
+  //       }
+  //     },
+  //     (err) => {
+  //       setIsLoading(false);
+  //       setError("An error occurred while fetching search results. Please try again.");
+  //       console.error(err);
+  //     }
+  //   );
+  // };
+
   const handleSearch = () => {
     if (!searchQuery) {
       alert("Please enter a search query");
       return;
     }
-
+  
     setIsLoading(true);
     setError("");
     setSearchResults([]);
-
+  
     const task = taskData?.find((t: any) => t["taskName"] === taskId);
     const question = task?.questions[questionKey];
-
-    const tmp = task?.rerank_engine ? {
-      existence: question?.design_decision?.existence ?? null,
-      executive: question?.design_decision?.executive ?? null,
-      property: question?.design_decision?.property ?? null,
-    } : {
-      existence: null,
-      executive: null,
-      property: null,
-    };
-
+  
+    if (task.gpt == true) {
+      const data = {
+        prompt: searchQuery,
+      };
+  
+      postRequest("/gpt4-response", data, (response) => {
+        if (response.answer) {
+          const newQuery = response.answer;
+          // alert("Ratings submitted successfully");
+  
+          // Proceed with the search logic now that newQuery is available
+          performSearch(task, question, newQuery);
+        } else {
+          alert("Failed to fetch search results. Please try again.");
+          console.log(response);
+          setIsLoading(false);
+        }
+      });
+    } else {
+      // If GPT is not enabled, proceed with the original query
+      performSearch(task, question, searchQuery);
+    }
+  };
+  
+  const performSearch = (task, question, query) => {
+    const tmp = task?.rerank_engine
+      ? {
+          existence: question?.design_decision?.existence ?? null,
+          executive: question?.design_decision?.executive ?? null,
+          property: question?.design_decision?.property ?? null,
+        }
+      : {
+          existence: null,
+          executive: null,
+          property: null,
+        };
+  
     postRequestSearchEngine(
       "/search",
       {
@@ -90,13 +192,13 @@ function ExperimentSearch() {
         model_id: selectedModel.modelId,
         version_id: selectedModel.versionId,
         repos_and_projects: { Apache: ["HDFS"] }, // Assuming predefined repo and project
-        query: searchQuery,
+        query: query,
         num_results: 10,
         predictions: tmp,
       },
       (data) => {
         setIsLoading(false);
-        if (data.result == "done") {
+        if (data.result === "done") {
           if (data["payload"].length === 0) {
             setError("No results found.");
           } else {
@@ -113,6 +215,7 @@ function ExperimentSearch() {
       }
     );
   };
+
 
   const handleRatingChange = (index: number, resultId: number, rating: string) => {
     setRatings({ ...ratings, [index]: { issue_id: resultId, rating } });
@@ -219,13 +322,13 @@ function ExperimentSearch() {
             <p className="text-lg font-bold">
               {idx + 1}. {result["issue_key"]}: {result["summary"]}
             </p>
-            <p className="italic mt-2 text-green-500">
+            {/* <p className="italic mt-2 text-green-500">
               Issue ID: {result["issue_id"]}
             </p>
             <p className="italic text-green-500">Label: {label.join(", ")}</p>
             <p className="italic text-green-500">
               Score: {result["hit_score"]}
-            </p>
+            </p> */}
             <p className="mt-2">
               {result["description"].split('\n').map((line, idx) => (
                 <React.Fragment key={idx}>{line}<br /></React.Fragment>
@@ -250,7 +353,7 @@ function ExperimentSearch() {
                 options={Object.entries(task?.lekert_scale).map(([value, label]) => ({
                   label: label,
                   value: parseInt(value)
-                }))}
+                })).sort((a, b) => b.value - a.value)}
                 selectedValue={ratings[idx]?.rating}
                 onChange={(value) => handleRatingChange(idx, result["issue_id"], value)}
               ></RadioButtonForm>
