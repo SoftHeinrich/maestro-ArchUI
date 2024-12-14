@@ -164,7 +164,7 @@ function ExperimentSearch() {
   };
 
   const handleSubmitRatings = () => {
-    if (Object.keys(ratings).length === searchResults.length) {
+    if (Object.keys(ratings).length === searchResults.length && searchResults.length!= 0 && Object.keys(ratings).length != 0) {
       const ratingsList = Object.values(ratings).map((rating) => ({
         issue_id: rating.issue_id,
         rating: rating.rating,
