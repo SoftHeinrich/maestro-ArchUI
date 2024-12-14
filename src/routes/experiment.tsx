@@ -96,11 +96,38 @@ function ShowExperiment({ taskData }) {
 
   return (
     <div className="space-y-4">
+      <div style={{ lineHeight: "1.8" }}>
+            <p><strong>Brief Instructions:</strong></p>
+            <p>For each of the following questions:</p>
+            <ol style={{ listStyleType: "circle", marginLeft: "20px" }}>
+              <li>Execute at least two queries or questions to find answers for each question.</li>
+              <li>You can either ask questions or write keywords to search for issues.</li>
+            
+              <li>Evaluate the relevance of each found issue to the question based on the following Likert scale:</li>
+                <ul style={{ listStyleType: "disc", marginLeft: "20px" }}>
+                  <li><strong>Very relevant (5):</strong> The issue contains sufficient information to answer the entire question.</li>
+                  <li><strong>Relevant (4):</strong> The issue contains information to answer part of the question.</li>
+                  <li><strong>Distantly relevant (3):</strong> The issue does not contain information to answer the question, but the content of the issue is related and helps to refine the search.</li>
+                  <li><strong>Less relevant (2):</strong> The issue does not contain information to answer the question, but the content of the issue can be related to the question.</li>
+                  <li><strong>Not relevant (1):</strong> The issue has no relation to the question.</li>
+                </ul>
+                <p>Additional Instructions:</p>
+                <ul style={{ listStyleType: "circle", marginLeft: "20px" }}>
+                  <li>Please record textual segments (e.g., sentences) from issues that help to answer a question in the results sheet.</li>
+                  <li>Also, record their issue IDs and locations.</li>
+                </ul>
+            </ol>
+          </div>
+        <hr />
+
       {taskData.map((task, index) => (
         <div key={index} className="space-y-4">
           <h3 className="text-2xl font-bold">Task: {task.taskName}</h3>
           <p>{task.description.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
-          <p>{task.task_details.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
+          {/* <p>{task.task_details.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p> */}
+          
+
+
           <h4 className="text-xl font-bold">Questions:</h4>
           {Object.entries(task.questions).map(([key, question]) => (
             <div key={key} className="p-4 rounded-md mb-2 relative">
@@ -121,8 +148,11 @@ function ShowExperiment({ taskData }) {
               </div>
             </div>
           ))}
+        <hr />
+
         </div>
       ))}
+      
     </div>
   );
 }

@@ -1,4 +1,3 @@
-// src/routes/experiment_search.tsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { postRequestSearchEngine, getDatabaseURL, postRequest } from "./util";
@@ -12,7 +11,6 @@ import {
   TextAreaForm,
   RadioButtonForm
 } from "../components/forms";
-// Types for SearchResult and Ratings
 
 type SearchResult = {
   issue_id: number;
@@ -60,80 +58,16 @@ function ExperimentSearch() {
     }
   }, [taskData, taskId, questionKey]);
 
-  // const handleSearch = () => {
-  //   if (!searchQuery) {
-  //     alert("Please enter a search query");
-  //     return;
-  //   }
-
-  //   setIsLoading(true);
-  //   setError("");
-  //   setSearchResults([]);
-
-  //   const task = taskData?.find((t: any) => t["taskName"] === taskId);
-  //   const question = task?.questions[questionKey];
-
-  //   var newQuery = null
-  //   if(task.gpt == true){
-  //     const data = {
-  //       prompt:searchQuery
-  //     };
-
-  
-  //     postRequest("/gpt4-response", data, (response) => {
-  //       if (response.answer) {
-  //         newQuery = response.answer
-  //         alert("Ratings submitted successfully");
-  //         // navigate(`/archui/experiment`);
-  //       } else {
-  //         alert("Failed to submit ratings. Please try again.");
-  //         console.log(response);
-  //       }
-  //     });
-
-  //     console.log(newQuery)
-  //   }
-
-  //   const tmp = task?.rerank_engine ? {
-  //     existence: question?.design_decision?.existence ?? null,
-  //     executive: question?.design_decision?.executive ?? null,
-  //     property: question?.design_decision?.property ?? null,
-  //   } : {
-  //     existence: null,
-  //     executive: null,
-  //     property: null,
-  //   };
-
-  //   postRequestSearchEngine(
-  //     "/search",
-  //     {
-  //       database_url: getDatabaseURL(),
-  //       model_id: selectedModel.modelId,
-  //       version_id: selectedModel.versionId,
-  //       repos_and_projects: { Apache: ["HDFS"] }, // Assuming predefined repo and project
-  //       query: newQuery!= null?newQuery:searchQuery,
-  //       num_results: 10,
-  //       predictions: tmp,
-  //     },
-  //     (data) => {
-  //       setIsLoading(false);
-  //       if (data.result == "done") {
-  //         if (data["payload"].length === 0) {
-  //           setError("No results found.");
-  //         } else {
-  //           setSearchResults([...data["payload"]]);
-  //         }
-  //       } else {
-  //         setError("Failed to fetch search results. Please try again.");
-  //       }
-  //     },
-  //     (err) => {
-  //       setIsLoading(false);
-  //       setError("An error occurred while fetching search results. Please try again.");
-  //       console.error(err);
-  //     }
-  //   );
-  // };
+  const logEvent = (logMessage: string,level: string="info") => {
+    const logData = {
+      level: level,
+      message: `Task: ${taskId}, Question: ${questionKey}, MtrNo: ${matriculationNumber}, ${logMessage}`,
+      timestamp: new Date().toISOString(),
+    };
+    postRequest("/logs", logData, (response) => {
+      console.log("Log submitted:", response);
+    });
+  };
 
   const handleSearch = () => {
     if (!searchQuery) {
@@ -148,26 +82,26 @@ function ExperimentSearch() {
     const task = taskData?.find((t: any) => t["taskName"] === taskId);
     const question = task?.questions[questionKey];
   
-    if (task.gpt == true) {
+    if (task.gpt === true) {
       const data = {
         prompt: searchQuery,
       };
+      logEvent(`Search initiated with GPT-4, Query: ${searchQuery}`);
   
-      postRequest("/gpt4-response", data, (response) => {
-        if (response.answer) {
-          const newQuery = response.answer;
-          // alert("Ratings submitted successfully");
-  
-          // Proceed with the search logic now that newQuery is available
+      postRequest("/gpt4-response", data, (data) => {
+        if (data.answer) {
+          const newQuery = data.answer;
+          logEvent(`Search successful with GPT-4, Query: ${newQuery}`);
           performSearch(task, question, newQuery);
         } else {
-          alert("Failed to fetch search results. Please try again.");
-          console.log(response);
+          logEvent(`Search failed with GPT-4, Query: ${searchQuery}`,"error");
+
           setIsLoading(false);
+          setError("An error occurred while fetching search results. Please try again.");
+          console.log(data);
         }
       });
     } else {
-      // If GPT is not enabled, proceed with the original query
       performSearch(task, question, searchQuery);
     }
   };
@@ -184,7 +118,16 @@ function ExperimentSearch() {
           executive: null,
           property: null,
         };
-  
+
+    var rerankingEngine ="";
+    if((tmp.executive|| tmp.existence|| tmp.property)){
+      rerankingEngine = " with reranking"
+    }else{
+      rerankingEngine = "with normal"
+    }
+    // String withGPT = "with reranking"? (tmp.executive|| tmp.existence|| tmp.property) :""
+    logEvent(`Search initiated ${rerankingEngine}, Query: ${searchQuery}`);
+
     postRequestSearchEngine(
       "/search",
       {
@@ -199,23 +142,21 @@ function ExperimentSearch() {
       (data) => {
         setIsLoading(false);
         if (data.result === "done") {
+        logEvent(`Search successful ${rerankingEngine}, Query: ${searchQuery}`);
+
           if (data["payload"].length === 0) {
             setError("No results found.");
           } else {
             setSearchResults([...data["payload"]]);
           }
         } else {
+          logEvent(`Search failed ${rerankingEngine}, Query: ${searchQuery}`,"error");
+
           setError("Failed to fetch search results. Please try again.");
         }
-      },
-      (err) => {
-        setIsLoading(false);
-        setError("An error occurred while fetching search results. Please try again.");
-        console.error(err);
       }
     );
   };
-
 
   const handleRatingChange = (index: number, resultId: number, rating: string) => {
     setRatings({ ...ratings, [index]: { issue_id: resultId, rating } });
@@ -236,12 +177,18 @@ function ExperimentSearch() {
         searchQuery,
         ratings: ratingsList,
       };
+
+      logEvent(`Ratings submission started for ${searchQuery}`);
   
       postRequest("/submit-ratings", experimentData, (response) => {
         if (response.success) {
+          logEvent(`Ratings submitted for ${searchResults.length} results: ${JSON.stringify(ratingsList)}`);
+
           alert("Ratings submitted successfully");
           navigate(`/archui/experiment`);
         } else {
+          logEvent(`Ratings submission failed for ${searchResults.length} results: ${JSON.stringify(ratingsList)}`,"error");
+
           alert("Failed to submit ratings. Please try again.");
           console.log(response);
         }
@@ -272,13 +219,36 @@ function ExperimentSearch() {
         <p className="mb-4">{question?.description.split('\n').map((line: string, idx: number) => (
           <React.Fragment key={idx}>{line}<br /></React.Fragment>
         ))}</p>
-        <p>{task?.task_details.split('\n').map((line: string, idx: number) => (
-          <React.Fragment key={idx}>{line}<br /></React.Fragment>
-        ))}</p>
+        <hr />
+
+        <div style={{ lineHeight: "1.8" }}>
+            <p><strong>Brief Instructions:</strong></p>
+            <p>For each of the following questions:</p>
+            <ol style={{ listStyleType: "circle", marginLeft: "20px" }}>
+              <li>Execute at least two queries or questions to find answers for each question.</li>
+              <li>You can either ask questions or write keywords to search for issues.</li>
+            
+              <li>Evaluate the relevance of each found issue to the question based on the following Likert scale:</li>
+                <ul style={{ listStyleType: "disc", marginLeft: "20px" }}>
+                  <li><strong>Very relevant (5):</strong> The issue contains sufficient information to answer the entire question.</li>
+                  <li><strong>Relevant (4):</strong> The issue contains information to answer part of the question.</li>
+                  <li><strong>Distantly relevant (3):</strong> The issue does not contain information to answer the question, but the content of the issue is related and helps to refine the search.</li>
+                  <li><strong>Less relevant (2):</strong> The issue does not contain information to answer the question, but the content of the issue can be related to the question.</li>
+                  <li><strong>Not relevant (1):</strong> The issue has no relation to the question.</li>
+                </ul>
+                <p>Additional Instructions:</p>
+                <ul style={{ listStyleType: "circle", marginLeft: "20px" }}>
+                  <li>Please record textual segments (e.g., sentences) from issues that help to answer a question in the results sheet.</li>
+                  <li>Also, record their issue IDs and locations.</li>
+                </ul>
+            </ol>
+          </div>
       </div>
 
       <div className="border border-gray-500 rounded-lg p-4 mt-4 space-y-4">
-        {task?.gpt == true && <h1>Using GPT</h1>}
+        {task?.gpt == true && <h1>Type <b><u>Question</u></b></h1>}
+        {task?.gpt == false && <h1>Type <b><u>Keywords</u></b></h1>}
+
         <TextAreaForm
           label="Query"
           value={searchQuery}
