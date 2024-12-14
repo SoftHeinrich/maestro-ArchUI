@@ -59,6 +59,7 @@ function ExperimentForm({ setTaskData }) {
       "/tasks",
       body,
       (data) => {
+        console.log(data)
         if (JSON.stringify(data) !== JSON.stringify(currentData)) {
           setLoginInfo(`Tasks For: ${mtrNo}`);
           alert("Task Fetched Successfully");
@@ -130,8 +131,8 @@ function ShowExperiment({ taskData }) {
 
           <h4 className="text-xl font-bold">Questions:</h4>
           {Object.entries(task.questions).map(([key, question]) => (
-            <div key={key} className="p-4 rounded-md mb-2 relative">
-              <p className="font-bold">{question.type} Question:</p>
+            <div key={key} className="p-1 rounded-md mb-2 relative">
+              <p className="font-bold">Question: ({question.type})</p>
               <p>{question.description.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
               {/* <p>Design Decision: {Object.keys(question.design_decision).join(", ")}</p> */}
               <div className="absolute top-0 right-0">
