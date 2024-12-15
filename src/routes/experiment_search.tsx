@@ -186,6 +186,7 @@ function ExperimentSearch() {
 
           alert("Ratings submitted successfully");
           navigate(`/archui/experiment`);
+          window.scrollTo(0, 0);
         } else {
           logEvent(`Ratings submission failed for ${searchResults.length} results: ${JSON.stringify(ratingsList)}`,"error");
 

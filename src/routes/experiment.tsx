@@ -9,7 +9,7 @@ function StartExperiment({ label, onClick }) {
   const [mtrNo, setMtrNo] = useState("");
   const forms = [
     {
-      label: "Mtr. No",
+      label: "User ID",
       password: false,
     }
   ].map((form) => (
@@ -36,20 +36,26 @@ function StartExperiment({ label, onClick }) {
 // ExperimentForm Component
 
 function ExperimentForm({ setTaskData }) {
+  const [hasFetched, setHasFetched] = useState(false); // Flag to prevent duplicate fetches
+
   let [loginInfo, setLoginInfo] = useState(()=>{
     if(localStorage.getItem("matriculationNumber")) return `Tasks For: ${localStorage.getItem("matriculationNumber")}`
     else
     return "No Tasks yet"});
 
   useEffect(() => {
-    const storedTaskData = localStorage.getItem("taskData");
-    const storedMatriculationNumber = localStorage.getItem("matriculationNumber");
-
-    if (storedTaskData && storedMatriculationNumber) {
-      // Fetch updated tasks info from the server
-      getTasksInfo(storedMatriculationNumber, JSON.parse(storedTaskData));
+    if(!hasFetched){
+      const storedTaskData = localStorage.getItem("taskData");
+      const storedMatriculationNumber = localStorage.getItem("matriculationNumber");
+  
+      if (storedTaskData && storedMatriculationNumber) {
+        // Fetch updated tasks info from the server
+        getTasksInfo(storedMatriculationNumber, JSON.parse(storedTaskData));
+      }
+      setHasFetched(true);
     }
-  }, []);
+    
+  }, [hasFetched]);
 
   function getTasksInfo(mtrNo, currentData = null) {
     let body = {
@@ -76,7 +82,7 @@ function ExperimentForm({ setTaskData }) {
   return (
     <>
       <p className="text-2xl justify-center flex mb-4">{loginInfo}</p>
-      <StartExperiment label="Set Mtr.No" onClick={(mtrNo) => getTasksInfo(mtrNo)} />
+      <StartExperiment label="Set User ID" onClick={(mtrNo) => getTasksInfo(mtrNo)} />
     </>
   );
 }
@@ -136,15 +142,7 @@ function ShowExperiment({ taskData }) {
               <p>{question.description.split('\n').map((line, idx) => (<React.Fragment key={idx}>{line}<br /></React.Fragment>))}</p>
               {/* <p>Design Decision: {Object.keys(question.design_decision).join(", ")}</p> */}
               <div className="absolute top-0 right-0">
-                {task.solutions && task.solutions[key] && task.solutions[key].length >= 2 ? (
-                  <span className="text-green-500 font-bold">Solved</span>
-                  
-                ) : (
-                  <>
                     <Button label="Attempt" onClick={() => handleAttempt(key, task.taskName)} />
-                    
-                  </>
-                )}
                 <span className="text-gray-500 ml-2">solved: {task.solutions && task.solutions[key] ? task.solutions[key].length : 0}/2</span>
               </div>
             </div>
