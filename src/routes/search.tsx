@@ -4,6 +4,7 @@ import {
   getRequest,
   getSearchEngineURL,
   postRequestSearchEngine,
+  postRequestArchRag,
 } from "./util";
 import {
   MultiSelectForm,
@@ -255,7 +256,7 @@ function SearchResults({ searchResults }) {
   return (
     <div className=" border-gray-500 rounded-lg p-4 mt-4 space-y-4">
       {searchResults.length !== 0 ? (
-        <p className="flex justify-center text-2xl font-bold">Search results</p>
+        <p className="flex justify-center text-2xl font-bold">Full-Text Search Results</p>
       ) : null}
 
       {searchResults.map((result, idx) => {
@@ -295,6 +296,51 @@ function SearchResults({ searchResults }) {
   );
 }
 
+function ArchRagSearchResults({ archRagResults }) {
+  return (
+    <div className="border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+      {archRagResults.length !== 0 ? (
+        <p className="flex justify-center text-2xl font-bold">
+          Vector Search Results
+        </p>
+      ) : null}
+
+      {archRagResults.map((result, idx) => (
+        <div
+          className="rounded-lg border border-gray-500 p-2"
+          key={result["issue_key"] + "-" + idx}
+        >
+          <p className="text-lg font-bold">
+            {idx + 1}. {result["issue_key"]}
+          </p>
+          <p className="italic mt-2 text-blue-500">
+            Score: {result["score"]}
+          </p>
+          {result["snippets"] && result["snippets"].length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {result["snippets"].map((snippet, sIdx) => (
+                <div
+                  key={sIdx}
+                  className="border-l-2 border-blue-500 pl-2 text-sm"
+                >
+                  <p className="italic text-blue-400">
+                    Snippet score: {snippet["score"]}
+                  </p>
+                  <p className="whitespace-pre-wrap">
+                    {snippet["text"].length > 300
+                      ? snippet["text"].substring(0, 300) + "..."
+                      : snippet["text"]}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function checkModel(selectedModel) {
   if (
     selectedModel["modelId"] !== null &&
@@ -321,6 +367,7 @@ export default function Search() {
     property: null,
   });
   let [searchResults, setSearchResults] = useState([]);
+  let [archRagResults, setArchRagResults] = useState([]);
 
   function getProjectsByRepo() {
     let projects_by_repo = {};
@@ -352,6 +399,8 @@ export default function Search() {
 
   function search() {
     if (checkModel(selectedModel)) {
+      setSearchResults([]);
+      setArchRagResults([]);
       let tmp = { ...filterClasses };
       if (selectedModel["modelId"] === null) {
         tmp = {
@@ -372,6 +421,18 @@ export default function Search() {
           predictions: tmp,
         },
         (data) => setSearchResults([...data["payload"]])
+      );
+
+      postRequestArchRag(
+        "/search",
+        {
+          query: query,
+          num_results: numResults,
+          snippets_per_file: 3,
+          top_k_vectors: 50,
+          aggregate: "max",
+        },
+        (data) => setArchRagResults([...data["payload"]])
       );
     }
   }
@@ -425,7 +486,10 @@ export default function Search() {
         </div>
       </div>
 
-      <SearchResults searchResults={searchResults} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SearchResults searchResults={searchResults} />
+        <ArchRagSearchResults archRagResults={archRagResults} />
+      </div>
     </div>
   );
 }

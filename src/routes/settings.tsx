@@ -142,6 +142,10 @@ function URLForms() {
           id: "searchEngineURL",
           label: "Search Engine URL",
         },
+        {
+          id: "archRagURL",
+          label: "ArchRag URL",
+        },
       ].map((item) => {
         return (
           <TextForm
