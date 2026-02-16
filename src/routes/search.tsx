@@ -255,10 +255,6 @@ function ClassForms({ setFilterClasses, selectedModel }) {
 function SearchResults({ searchResults }) {
   return (
     <div className=" border-gray-500 rounded-lg p-4 mt-4 space-y-4">
-      {searchResults.length !== 0 ? (
-        <p className="flex justify-center text-2xl font-bold">Full-Text Search Results</p>
-      ) : null}
-
       {searchResults.map((result, idx) => {
         let label: string[] = [];
         for (let className of ["existence", "executive", "property"]) {
@@ -288,7 +284,11 @@ function SearchResults({ searchResults }) {
             <p className="italic text-green-500">
               Score: {result["hit_score"]}
             </p>
-            <p className="mt-2">{result["description"]}</p>
+            <p className="mt-2">
+              {result["description"] && result["description"].length > 300
+                ? result["description"].substring(0, 300) + "..."
+                : result["description"]}
+            </p>
           </div>
         );
       })}
@@ -299,44 +299,52 @@ function SearchResults({ searchResults }) {
 function ArchRagSearchResults({ archRagResults }) {
   return (
     <div className="border-gray-500 rounded-lg p-4 mt-4 space-y-4">
-      {archRagResults.length !== 0 ? (
-        <p className="flex justify-center text-2xl font-bold">
-          Vector Search Results
-        </p>
-      ) : null}
-
-      {archRagResults.map((result, idx) => (
-        <div
-          className="rounded-lg border border-gray-500 p-2"
-          key={result["issue_key"] + "-" + idx}
-        >
-          <p className="text-lg font-bold">
-            {idx + 1}. {result["issue_key"]}
-          </p>
-          <p className="italic mt-2 text-blue-500">
-            Score: {result["score"]}
-          </p>
-          {result["snippets"] && result["snippets"].length > 0 ? (
-            <div className="mt-2 space-y-2">
-              {result["snippets"].map((snippet, sIdx) => (
-                <div
-                  key={sIdx}
-                  className="border-l-2 border-blue-500 pl-2 text-sm"
-                >
-                  <p className="italic text-blue-400">
-                    Snippet score: {snippet["score"]}
-                  </p>
-                  <p className="whitespace-pre-wrap">
-                    {snippet["text"].length > 300
-                      ? snippet["text"].substring(0, 300) + "..."
-                      : snippet["text"]}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ))}
+      {archRagResults.map((result, idx) => {
+        let label: string[] = [];
+        for (let className of ["existence", "executive", "property"]) {
+          if (result[className] === "true") {
+            label.push(className);
+          }
+        }
+        if (label.length === 0) {
+          if (result["existence"] === null) {
+            label.push("Not classified");
+          } else {
+            label.push("non-architectural");
+          }
+        }
+        return (
+          <div
+            className="rounded-lg border border-gray-500 p-2"
+            key={result["issue_key"] + "-" + idx}
+          >
+            <p className="text-lg font-bold">
+              {idx + 1}. {result["issue_key"]}: {result["summary"]}
+            </p>
+            <p className="italic mt-2 text-green-500">
+              Issue ID: {result["issue_id"]}
+            </p>
+            <p className="italic text-green-500">Label: {label.join(", ")}</p>
+            <p className="italic text-green-500">
+              Score: {result["score"]}
+            </p>
+            <p className="mt-2">
+              {result["description"] && result["description"].length > 300
+                ? result["description"].substring(0, 300) + "..."
+                : result["description"]}
+            </p>
+            {result["snippets"] && result["snippets"].length > 0 ? (
+              <div className="mt-1">
+                <p className="text-xs text-blue-400">
+                  Snippets: {result["snippets"].map((s, i) => (
+                    <span key={i}>{i > 0 ? " | " : ""}{s["score"]}</span>
+                  ))}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -486,9 +494,15 @@ export default function Search() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SearchResults searchResults={searchResults} />
-        <ArchRagSearchResults archRagResults={archRagResults} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div>
+          <p className="text-2xl font-bold text-center">Full-Text Search (PyLucene)</p>
+          <SearchResults searchResults={searchResults} />
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-center">Vector Search (archRag)</p>
+          <ArchRagSearchResults archRagResults={archRagResults} />
+        </div>
       </div>
     </div>
   );
