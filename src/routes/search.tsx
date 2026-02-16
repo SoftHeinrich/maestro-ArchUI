@@ -4,6 +4,7 @@ import {
   getRequest,
   getSearchEngineURL,
   postRequestSearchEngine,
+  postRequestArchRag,
 } from "./util";
 import {
   MultiSelectForm,
@@ -254,10 +255,6 @@ function ClassForms({ setFilterClasses, selectedModel }) {
 function SearchResults({ searchResults }) {
   return (
     <div className=" border-gray-500 rounded-lg p-4 mt-4 space-y-4">
-      {searchResults.length !== 0 ? (
-        <p className="flex justify-center text-2xl font-bold">Search results</p>
-      ) : null}
-
       {searchResults.map((result, idx) => {
         let label: string[] = [];
         for (let className of ["existence", "executive", "property"]) {
@@ -287,7 +284,64 @@ function SearchResults({ searchResults }) {
             <p className="italic text-green-500">
               Score: {result["hit_score"]}
             </p>
-            <p className="mt-2">{result["description"]}</p>
+            <p className="mt-2">
+              {result["description"] && result["description"].length > 300
+                ? result["description"].substring(0, 300) + "..."
+                : result["description"]}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ArchRagSearchResults({ archRagResults }) {
+  return (
+    <div className="border-gray-500 rounded-lg p-4 mt-4 space-y-4">
+      {archRagResults.map((result, idx) => {
+        let label: string[] = [];
+        for (let className of ["existence", "executive", "property"]) {
+          if (result[className] === "true") {
+            label.push(className);
+          }
+        }
+        if (label.length === 0) {
+          if (result["existence"] === null) {
+            label.push("Not classified");
+          } else {
+            label.push("non-architectural");
+          }
+        }
+        return (
+          <div
+            className="rounded-lg border border-gray-500 p-2"
+            key={result["issue_key"] + "-" + idx}
+          >
+            <p className="text-lg font-bold">
+              {idx + 1}. {result["issue_key"]}: {result["summary"]}
+            </p>
+            <p className="italic mt-2 text-green-500">
+              Issue ID: {result["issue_id"]}
+            </p>
+            <p className="italic text-green-500">Label: {label.join(", ")}</p>
+            <p className="italic text-green-500">
+              Score: {result["score"]}
+            </p>
+            <p className="mt-2">
+              {result["description"] && result["description"].length > 300
+                ? result["description"].substring(0, 300) + "..."
+                : result["description"]}
+            </p>
+            {result["snippets"] && result["snippets"].length > 0 ? (
+              <div className="mt-1">
+                <p className="text-xs text-blue-400">
+                  Snippets: {result["snippets"].map((s, i) => (
+                    <span key={i}>{i > 0 ? " | " : ""}{s["score"]}</span>
+                  ))}
+                </p>
+              </div>
+            ) : null}
           </div>
         );
       })}
@@ -321,6 +375,7 @@ export default function Search() {
     property: null,
   });
   let [searchResults, setSearchResults] = useState([]);
+  let [archRagResults, setArchRagResults] = useState([]);
 
   function getProjectsByRepo() {
     let projects_by_repo = {};
@@ -352,6 +407,8 @@ export default function Search() {
 
   function search() {
     if (checkModel(selectedModel)) {
+      setSearchResults([]);
+      setArchRagResults([]);
       let tmp = { ...filterClasses };
       if (selectedModel["modelId"] === null) {
         tmp = {
@@ -379,6 +436,18 @@ export default function Search() {
             setSearchResults([]);
           }
         }
+      );
+
+      postRequestArchRag(
+        "/search",
+        {
+          query: query,
+          num_results: numResults,
+          snippets_per_file: 3,
+          top_k_vectors: 50,
+          aggregate: "max",
+        },
+        (data) => setArchRagResults([...data["payload"]])
       );
     }
   }
@@ -432,7 +501,16 @@ export default function Search() {
         </div>
       </div>
 
-      <SearchResults searchResults={searchResults} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div>
+          <p className="text-2xl font-bold text-center">Full-Text Search (PyLucene)</p>
+          <SearchResults searchResults={searchResults} />
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-center">Vector Search (archRag)</p>
+          <ArchRagSearchResults archRagResults={archRagResults} />
+        </div>
+      </div>
     </div>
   );
 }

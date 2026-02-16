@@ -12,6 +12,10 @@ export function getSearchEngineURL() {
   ];
 }
 
+export function getArchRagURL() {
+  return JSON.parse(localStorage.getItem("connectionSettings"))["archRagURL"];
+}
+
 export function uploadFile(
   url,
   method,
@@ -260,6 +264,40 @@ export function postRequestSearchEngine(
   };
 
   fetch(getSearchEngineURL() + url, request).then((response) => {
+    if (!response.ok) {
+      response.json().then((data) => {
+        alert(
+          response.status +
+            ": " +
+            response.statusText +
+            "\n\n" +
+            JSON.stringify(data)
+        );
+      });
+    } else {
+      response.json().then((data) => {
+        if (thenFunction !== null) {
+          thenFunction(data);
+        }
+      });
+    }
+  });
+}
+
+export function postRequestArchRag(
+  url,
+  body,
+  thenFunction: null | ((data) => void) = null
+) {
+  let request = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  };
+
+  fetch(getArchRagURL() + url, request).then((response) => {
     if (!response.ok) {
       response.json().then((data) => {
         alert(
