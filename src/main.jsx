@@ -54,7 +54,7 @@ function App() {
 
   return (
     <>
-      <div className="dark:bg-slate-900 text-white min-h-screen">
+      <div className="bg-slate-900 text-white min-h-screen">
         <MainMenu />
         <div className="pt-4">
           <RouterProvider router={router} />

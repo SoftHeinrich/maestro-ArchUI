@@ -185,7 +185,7 @@ function GenerateIndex({ selectedModel, getProjectsByRepo }) {
       postRequestSearchEngine(
         "/create-index",
         {
-          database_url: getDatabaseURL(),
+          database_url: "http://issues-db-api:8000",
           model_id: selectedModel["modelId"],
           version_id: selectedModel["versionId"],
           repos_and_projects: getProjectsByRepo(),
@@ -371,7 +371,14 @@ export default function Search() {
           num_results: numResults,
           predictions: tmp,
         },
-        (data) => setSearchResults([...data["payload"]])
+        (data) => {
+          if (data["result"] === "done" && Array.isArray(data["payload"])) {
+            setSearchResults([...data["payload"]]);
+          } else {
+            alert("PyLucene: " + (data["payload"] || data["result"]));
+            setSearchResults([]);
+          }
+        }
       );
     }
   }

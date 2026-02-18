@@ -11,7 +11,7 @@ export function TextForm({ label, value, onChange, password = false }) {
         value={value}
         onChange={onChange}
         type={password ? "password" : "text"}
-        className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1 placeholder-gray-400"
       />
     </div>
   );
@@ -32,7 +32,7 @@ export function TextAreaForm({ label, value, onChange }) {
       )}
       <textarea
         wrap="off"
-        className="w-full p-1 rounded-lg rounded-br-none bg-gray-700 resize-y"
+        className="w-full p-1 rounded-lg rounded-br-none bg-gray-700 text-white resize-y"
         value={value}
         onChange={onChange}
         rows={rows}
@@ -51,7 +51,7 @@ export function CheckBox({ label, checked, onChange }) {
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1"
       />
     </div>
   );
@@ -80,7 +80,7 @@ export function Select({
         <label className="whitespace-nowrap">{label} </label>
       )}
       <select
-        className="p-1 rounded-lg bg-gray-700 w-full"
+        className="p-1 rounded-lg bg-gray-700 text-white w-full"
         value={value}
         onChange={onChange}
       >
@@ -109,7 +109,7 @@ export function MultiSelectForm({ options, onChange }) {
         multiValueRemove: () =>
           "bg-gray-700 text-white hover:bg-gray-500 hover:text-red-800 text-gray-500 hover:border-red-300 rounded-md",
         option: ({ isFocused, isSelected }) => {
-          let base = "hover:cursor-pointer px-3 py-2 rounded";
+          let base = "hover:cursor-pointer px-3 py-2 rounded text-white";
           if (isFocused) {
             base += " bg-gray-600 active:bg-gray-600";
           }

@@ -123,7 +123,7 @@ export function request(
       request["body"] = body;
     } else {
       request["body"] = JSON.stringify(body);
-      request["headers"]["COntent-Type"] = "application/json";
+      request["headers"]["Content-Type"] = "application/json";
     }
   }
 
